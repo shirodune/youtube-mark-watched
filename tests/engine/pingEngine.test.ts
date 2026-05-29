@@ -15,8 +15,10 @@ function watchPageHtml(len = '100'): string {
 describe('markWatchedViaPings', () => {
   it('fetches the page, fires playback first, then progressive watchtime segments ending with final=1', async () => {
     const calls: string[] = [];
-    const fakeFetch = vi.fn((url: string) => {
+    const inits: Array<RequestInit | undefined> = [];
+    const fakeFetch = vi.fn((url: string, init?: RequestInit) => {
       calls.push(url);
+      inits.push(init);
       if (url.includes('/watch?v=')) return Promise.resolve({ ok: true, text: () => Promise.resolve(watchPageHtml('100')) });
       return Promise.resolve({ ok: true, status: 204, text: () => Promise.resolve('') });
     });
@@ -34,6 +36,11 @@ describe('markWatchedViaPings', () => {
     const last = wtCalls[wtCalls.length - 1]!;
     expect(last).toContain('final=1');
     expect(new URL(last).searchParams.get('et')).toBe('100'); // last segment ends at duration
+
+    // every stats ping must carry credentials so it writes to the logged-in session's history
+    const pingInits = calls.map((u, i) => ({ u, init: inits[i] })).filter((c) => c.u.includes('/api/stats/'));
+    expect(pingInits.length).toBeGreaterThanOrEqual(3);
+    for (const c of pingInits) expect(c.init?.credentials).toBe('include');
   });
 
   it('returns ok:false when the playback ping is not ok', async () => {
