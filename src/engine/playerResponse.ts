@@ -33,7 +33,7 @@ export interface PlayerResponse {
     videostatsPlaybackUrl: { baseUrl: string };
     videostatsWatchtimeUrl: { baseUrl: string };
   };
-  videoDetails?: { lengthSeconds?: string };
+  videoDetails: { lengthSeconds?: string };
 }
 
 export function extractPlayerResponse(html: string): PlayerResponse {
