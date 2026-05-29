@@ -156,7 +156,6 @@ git commit -m "docs: record native-history feasibility spike findings"
     "module": "ES2022",
     "moduleResolution": "bundler",
     "strict": true,
-    "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "types": ["chrome"],
@@ -443,20 +442,20 @@ git commit -m "feat: add cpn generator"
 - Create: `src/engine/pingUrl.ts`
 - Test: `tests/engine/pingUrl.test.ts`
 
-> **Source of truth:** the exact extra params come from Task 1's spike findings. The params below (`ver`, `cpn`, and watchtime `cmt`/`st`/`et`/`state`) are what the spike snippet used; if the spike confirmed a different set, update both the test and the implementation to match before committing.
+> **Confirmed by the Task 1 spike** (see [the spike findings](../spikes/2026-05-30-native-history-spike.md)): session init = playback ping with `cmt=0`; then *progressive* watchtime pings over contiguous `0→duration` segments; the final ping commits with `state=paused` + `final=1`. A single instant "watched it all" ping credited only ~10% of the bar, so the segmented sequence is required for a full "watched" bar.
 
 - [ ] **Step 1: Write the failing test**
 
 ```ts
 import { describe, it, expect } from 'vitest';
-import { appendParams, buildPlaybackPingUrl, buildWatchtimePingUrl } from '../../src/engine/pingUrl';
+import { appendParams, buildPlaybackPingUrl, buildWatchtimePingUrl, watchtimeSegments } from '../../src/engine/pingUrl';
 
-const BASE = 'https://www.youtube.com/api/stats/playback?ns=yt&el=detailpage&docid=ID&ei=XYZ';
+const PB_BASE = 'https://www.youtube.com/api/stats/playback?ns=yt&el=detailpage&docid=ID&ei=XYZ';
 const WT_BASE = 'https://www.youtube.com/api/stats/watchtime?ns=yt&el=detailpage&docid=ID&ei=XYZ';
 
 describe('appendParams', () => {
   it('preserves existing params and adds new ones', () => {
-    const out = new URL(appendParams(BASE, { ver: 2, cpn: 'CPN16CHAR' }));
+    const out = new URL(appendParams(PB_BASE, { ver: 2, cpn: 'CPN16CHAR' }));
     expect(out.searchParams.get('docid')).toBe('ID');
     expect(out.searchParams.get('ver')).toBe('2');
     expect(out.searchParams.get('cpn')).toBe('CPN16CHAR');
@@ -464,21 +463,42 @@ describe('appendParams', () => {
 });
 
 describe('buildPlaybackPingUrl', () => {
-  it('adds ver and cpn', () => {
-    const out = new URL(buildPlaybackPingUrl(BASE, 'CPN16CHAR'));
+  it('adds ver, cpn, and cmt=0 (session init)', () => {
+    const out = new URL(buildPlaybackPingUrl(PB_BASE, 'CPN16CHAR'));
     expect(out.searchParams.get('ver')).toBe('2');
     expect(out.searchParams.get('cpn')).toBe('CPN16CHAR');
+    expect(out.searchParams.get('cmt')).toBe('0');
+  });
+});
+
+describe('watchtimeSegments', () => {
+  it('covers 0..duration contiguously, ending exactly at duration', () => {
+    const segs = watchtimeSegments(19, 4);
+    expect(segs[0]![0]).toBe(0);
+    expect(segs[segs.length - 1]![1]).toBe(19);
+    for (let i = 1; i < segs.length; i++) expect(segs[i]![0]).toBe(segs[i - 1]![1]);
+  });
+  it('handles very short durations', () => {
+    const segs = watchtimeSegments(2, 4);
+    expect(segs[0]![0]).toBe(0);
+    expect(segs[segs.length - 1]![1]).toBe(2);
   });
 });
 
 describe('buildWatchtimePingUrl', () => {
-  it('reports a near-full watch via cmt/st/et', () => {
-    const out = new URL(buildWatchtimePingUrl(WT_BASE, 'CPN16CHAR', 212));
+  it('reports a playing segment via st/et/cmt', () => {
+    const out = new URL(buildWatchtimePingUrl(WT_BASE, 'CPN16CHAR', 5, 10));
     expect(out.searchParams.get('cpn')).toBe('CPN16CHAR');
-    expect(out.searchParams.get('cmt')).toBe('212');
-    expect(out.searchParams.get('st')).toBe('0');
-    expect(out.searchParams.get('et')).toBe('212');
+    expect(out.searchParams.get('st')).toBe('5');
+    expect(out.searchParams.get('et')).toBe('10');
+    expect(out.searchParams.get('cmt')).toBe('10');
     expect(out.searchParams.get('state')).toBe('playing');
+    expect(out.searchParams.get('final')).toBeNull();
+  });
+  it('marks the final commit ping with state=paused and final=1', () => {
+    const out = new URL(buildWatchtimePingUrl(WT_BASE, 'CPN16CHAR', 15, 19, { final: true }));
+    expect(out.searchParams.get('state')).toBe('paused');
+    expect(out.searchParams.get('final')).toBe('1');
   });
 });
 ```
@@ -502,25 +522,47 @@ export function appendParams(baseUrl: string, params: Record<string, string | nu
 }
 
 export function buildPlaybackPingUrl(baseUrl: string, cpn: string): string {
-  return appendParams(baseUrl, { ver: 2, cpn });
+  return appendParams(baseUrl, { ver: 2, cpn, cmt: 0 });
 }
 
-export function buildWatchtimePingUrl(baseUrl: string, cpn: string, durationSeconds: number): string {
-  return appendParams(baseUrl, {
+/** Contiguous [start, end] segments covering 0..duration (defaults to 4 segments). */
+export function watchtimeSegments(durationSeconds: number, segmentCount = 4): Array<[number, number]> {
+  const dur = Math.max(1, Math.floor(durationSeconds));
+  const seg = Math.max(1, Math.round(dur / segmentCount));
+  const steps: Array<[number, number]> = [];
+  let prev = 0;
+  for (let p = seg; p < dur; p += seg) {
+    steps.push([prev, p]);
+    prev = p;
+  }
+  steps.push([prev, dur]);
+  return steps;
+}
+
+export function buildWatchtimePingUrl(
+  baseUrl: string,
+  cpn: string,
+  st: number,
+  et: number,
+  opts: { final?: boolean } = {},
+): string {
+  const params: Record<string, string | number> = {
     ver: 2,
     cpn,
-    cmt: durationSeconds,
-    st: 0,
-    et: durationSeconds,
-    state: 'playing',
-  });
+    cmt: et,
+    st,
+    et,
+    state: opts.final ? 'paused' : 'playing',
+  };
+  if (opts.final) params.final = 1;
+  return appendParams(baseUrl, params);
 }
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run tests/engine/pingUrl.test.ts`
-Expected: PASS (3 tests).
+Expected: PASS (all appendParams / buildPlaybackPingUrl / watchtimeSegments / buildWatchtimePingUrl tests).
 
 - [ ] **Step 5: Commit**
 
@@ -730,31 +772,38 @@ export type MarkWatched = (videoId: string) => Promise<MarkResult>;
 import { describe, it, expect, vi } from 'vitest';
 import { markWatchedViaPings } from '../../src/engine/pingEngine';
 
-function watchPageHtml(): string {
+function watchPageHtml(len = '100'): string {
   return 'x var ytInitialPlayerResponse = ' + JSON.stringify({
     playbackTracking: {
       videostatsPlaybackUrl: { baseUrl: 'https://www.youtube.com/api/stats/playback?docid=ID&ei=E' },
       videostatsWatchtimeUrl: { baseUrl: 'https://www.youtube.com/api/stats/watchtime?docid=ID&ei=E' },
     },
-    videoDetails: { lengthSeconds: '100' },
+    videoDetails: { lengthSeconds: len },
   }) + '; y';
 }
 
 describe('markWatchedViaPings', () => {
-  it('fetches the page, then fires playback before watchtime, and resolves ok', async () => {
+  it('fetches the page, fires playback first, then progressive watchtime segments ending with final=1', async () => {
     const calls: string[] = [];
     const fakeFetch = vi.fn((url: string) => {
       calls.push(url);
-      if (url.includes('/watch?v=')) return Promise.resolve({ ok: true, text: () => Promise.resolve(watchPageHtml()) });
+      if (url.includes('/watch?v=')) return Promise.resolve({ ok: true, text: () => Promise.resolve(watchPageHtml('100')) });
       return Promise.resolve({ ok: true, status: 204, text: () => Promise.resolve('') });
     });
     const res = await markWatchedViaPings('ID', { fetch: fakeFetch as unknown as typeof fetch });
     expect(res.ok).toBe(true);
+
     const pbIdx = calls.findIndex((u) => u.includes('/api/stats/playback'));
-    const wtIdx = calls.findIndex((u) => u.includes('/api/stats/watchtime'));
+    const firstWtIdx = calls.findIndex((u) => u.includes('/api/stats/watchtime'));
+    const wtCalls = calls.filter((u) => u.includes('/api/stats/watchtime'));
     expect(pbIdx).toBeGreaterThan(-1);
-    expect(wtIdx).toBeGreaterThan(pbIdx); // ordering: playback before watchtime
+    expect(firstWtIdx).toBeGreaterThan(pbIdx); // ordering: playback before watchtime
+    expect(wtCalls.length).toBeGreaterThanOrEqual(2); // progressive segments
     expect(calls[pbIdx]).toContain('cpn=');
+
+    const last = wtCalls[wtCalls.length - 1]!;
+    expect(last).toContain('final=1');
+    expect(new URL(last).searchParams.get('et')).toBe('100'); // last segment ends at duration
   });
 
   it('returns ok:false when the playback ping is not ok', async () => {
@@ -788,7 +837,7 @@ Expected: FAIL — module/exports missing.
 // src/engine/pingEngine.ts
 import { generateCpn } from './cpn';
 import { fetchTrackingUrls } from './playerApi';
-import { buildPlaybackPingUrl, buildWatchtimePingUrl } from './pingUrl';
+import { buildPlaybackPingUrl, buildWatchtimePingUrl, watchtimeSegments } from './pingUrl';
 import type { MarkResult } from './types';
 
 export interface PingEngineDeps {
@@ -804,11 +853,17 @@ export async function markWatchedViaPings(
     const cpn = generateCpn();
     const duration = lengthSeconds > 0 ? lengthSeconds : 1;
 
+    // 1) Session init (playback ping, cmt=0).
     const playbackRes = await deps.fetch(buildPlaybackPingUrl(playbackUrl, cpn), { credentials: 'include' });
     if (!playbackRes.ok) return { ok: false, error: `playback ping failed: ${playbackRes.status}` };
 
-    const watchtimeRes = await deps.fetch(buildWatchtimePingUrl(watchtimeUrl, cpn, duration), { credentials: 'include' });
-    if (!watchtimeRes.ok) return { ok: false, error: `watchtime ping failed: ${watchtimeRes.status}` };
+    // 2) Progressive watchtime pings over 0..duration; the final ping commits the watched position.
+    const segments = watchtimeSegments(duration);
+    for (const [i, [st, et]] of segments.entries()) {
+      const final = i === segments.length - 1;
+      const res = await deps.fetch(buildWatchtimePingUrl(watchtimeUrl, cpn, st, et, { final }), { credentials: 'include' });
+      if (!res.ok) return { ok: false, error: `watchtime ping failed: ${res.status}` };
+    }
 
     return { ok: true };
   } catch (e) {
