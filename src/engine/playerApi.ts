@@ -9,7 +9,8 @@ export interface TrackingUrls {
 
 export async function fetchTrackingUrls(
   videoId: string,
-  fetchImpl: typeof fetch = fetch,
+  // Wrap global fetch (see pingEngine) so a detached native fetch is never called directly.
+  fetchImpl: typeof fetch = (input, init) => fetch(input, init),
 ): Promise<TrackingUrls> {
   const res = await fetchImpl(`https://www.youtube.com/watch?v=${videoId}`, { credentials: 'include' });
   const html = await res.text();

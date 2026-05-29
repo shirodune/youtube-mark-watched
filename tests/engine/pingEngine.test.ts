@@ -60,4 +60,23 @@ describe('markWatchedViaPings', () => {
     expect(res.ok).toBe(false);
     expect(res.error).toContain('network down');
   });
+
+  it('default deps invoke fetch unbound (guards against detached-native-fetch "Illegal invocation")', async () => {
+    const original = globalThis.fetch;
+    // Mimic native fetch: calling it as a method of a non-global object is illegal.
+    const guarded = function (this: unknown, url: RequestInfo | URL): Promise<Response> {
+      if (this !== undefined && this !== globalThis) {
+        return Promise.reject(new TypeError("Failed to execute 'fetch' on 'Window': Illegal invocation"));
+      }
+      const body = String(url).includes('/watch?v=') ? watchPageHtml('10') : '';
+      return Promise.resolve({ ok: true, status: 204, text: () => Promise.resolve(body) } as unknown as Response);
+    };
+    globalThis.fetch = guarded as unknown as typeof fetch;
+    try {
+      const res = await markWatchedViaPings('ID'); // no deps -> exercises the default fetch
+      expect(res.ok).toBe(true);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
 });

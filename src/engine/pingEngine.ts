@@ -10,7 +10,9 @@ export interface PingEngineDeps {
 
 export async function markWatchedViaPings(
   videoId: string,
-  deps: PingEngineDeps = { fetch },
+  // Wrap the global fetch in an arrow so it is always invoked unbound. Calling a
+  // detached native fetch (e.g. as `deps.fetch(...)`) throws "Illegal invocation".
+  deps: PingEngineDeps = { fetch: (input, init) => fetch(input, init) },
 ): Promise<MarkResult> {
   try {
     const { playbackUrl, watchtimeUrl, lengthSeconds } = await fetchTrackingUrls(videoId, deps.fetch);
