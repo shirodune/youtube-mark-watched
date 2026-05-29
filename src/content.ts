@@ -9,21 +9,26 @@ import { showToast } from './ui/toast';
 
 const inFlight = new Set<string>();
 
-function isLoggedIn(): boolean {
-  return !!document.querySelector('#avatar-btn, ytd-topbar-menu-button-renderer #avatar, button[aria-label*="Account"]');
+function isSignedOut(): boolean {
+  // Positive avatar detection is unreliable on YouTube's obfuscated masthead, so we
+  // default to "signed in" and only block when a clear sign-in affordance is present.
+  return !!document.querySelector(
+    'ytd-masthead a[href*="accounts.google.com"], ytd-masthead a[href*="ServiceLogin"], a[aria-label="Sign in"]',
+  );
 }
 
 async function handleClick(anchor: HTMLAnchorElement, videoId: string): Promise<void> {
-  if (!isLoggedIn()) { showToast('Sign in to mark videos as watched'); return; }
+  if (isSignedOut()) { showToast('Sign in to mark videos as watched'); return; }
   if (inFlight.has(videoId)) return;
   inFlight.add(videoId);
   applyWatchedStyle(anchor);       // optimistic
   markButtonState(anchor, true);
-  await add(videoId);              // local record so styling persists across recycling
   try {
     const res = await markWatched(videoId);
     if (!res.ok) throw new Error(res.error ?? 'unknown');
-  } catch {
+    await add(videoId);            // persist only on success so styling re-applies across recycling
+  } catch (e) {
+    console.warn('[YMW] mark failed', videoId, e);
     removeWatchedStyle(anchor);    // revert on failure
     markButtonState(anchor, false);
     showToast('Couldn’t mark as watched');
