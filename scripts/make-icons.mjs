@@ -1,10 +1,20 @@
 // Generates the extension icons (16/48/128) with no external dependencies.
-// Draws a red rounded square with a white "eye" (matching the in-page button),
-// rasterized with 4x supersampling for smooth edges, and encodes PNG via zlib.
+// Draws a rounded square (BG color) with a white "eye" cutout, anti-aliased via
+// 4x supersampling, and encodes PNG via zlib.
+// Configurable via env vars: YMW_ICON_COLOR (hex), YMW_ICON_DIR (output dir).
 import zlib from 'node:zlib';
 import { writeFileSync, mkdirSync } from 'node:fs';
 
 const SS = 4; // supersample factor for anti-aliasing
+const BG_HEX = process.env.YMW_ICON_COLOR || '#4f46e5';
+const OUT = process.env.YMW_ICON_DIR || 'icons';
+
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  return [parseInt(full.slice(0, 2), 16), parseInt(full.slice(2, 4), 16), parseInt(full.slice(4, 6), 16)];
+}
+const BG = hexToRgb(BG_HEX);
 
 function renderIcon(size) {
   const W = size * SS;
@@ -36,12 +46,12 @@ function renderIcon(size) {
       const px = x + 0.5;
       const py = y + 0.5;
       if (inRoundedRect(px, py)) {
-        col = [255, 0, 0, 255];
+        col = [BG[0], BG[1], BG[2], 255];
         if (inEllipse(px, py, scleraRx, scleraRy)) {
           col = [255, 255, 255, 255];
           const pdx = px - cx;
           const pdy = py - cy;
-          if (pdx * pdx + pdy * pdy <= pupilR * pupilR) col = [255, 0, 0, 255];
+          if (pdx * pdx + pdy * pdy <= pupilR * pupilR) col = [BG[0], BG[1], BG[2], 255];
         }
       }
       const i = (y * W + x) * 4;
@@ -52,7 +62,6 @@ function renderIcon(size) {
     }
   }
 
-  // Downsample SS x SS, averaging in premultiplied alpha.
   const out = new Uint8ClampedArray(size * size * 4);
   const n = SS * SS;
   for (let y = 0; y < size; y++) {
@@ -112,22 +121,22 @@ function encodePng({ width, height, data }) {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(width, 0);
   ihdr.writeUInt32BE(height, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 6; // RGBA
+  ihdr[8] = 8;
+  ihdr[9] = 6;
   const stride = width * 4;
   const raw = Buffer.alloc(height * (1 + stride));
   for (let y = 0; y < height; y++) {
-    raw[y * (1 + stride)] = 0; // filter: none
+    raw[y * (1 + stride)] = 0;
     for (let x = 0; x < stride; x++) raw[y * (1 + stride) + 1 + x] = data[y * stride + x];
   }
   const idat = zlib.deflateSync(raw, { level: 9 });
   return Buffer.concat([sig, chunk('IHDR', ihdr), chunk('IDAT', idat), chunk('IEND', Buffer.alloc(0))]);
 }
 
-mkdirSync('icons', { recursive: true });
+mkdirSync(OUT, { recursive: true });
 for (const s of [16, 48, 128]) {
   const png = encodePng(renderIcon(s));
-  writeFileSync(`icons/icon${s}.png`, png);
-  console.log(`icons/icon${s}.png (${png.length} bytes)`);
+  writeFileSync(`${OUT}/icon${s}.png`, png);
+  console.log(`${OUT}/icon${s}.png (${png.length} bytes)`);
 }
-console.log('Icons generated.');
+console.log(`Icons generated (color ${BG_HEX}).`);
