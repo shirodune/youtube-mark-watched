@@ -13,10 +13,9 @@ const CSS = `
 .ymw-mark-btn.ymw-done { background: rgba(0,0,0,0.85); color: #3ea6ff; }
 .ymw-anchor:hover .ymw-mark-btn, .ymw-mark-btn:focus-visible { display: inline-flex; }
 .ymw-watched-bar {
-  position: absolute; left: 0; right: 0; bottom: 0; height: 4px; z-index: 59;
-  background: #f00;
+  position: absolute; left: 0; right: 0; bottom: 0; height: 4px; z-index: 60;
+  background: #ff0000;
 }
-.ymw-anchor.ymw-watched yt-thumbnail-view-model, .ymw-anchor.ymw-watched img { opacity: 0.55; }
 `;
 
 export function injectStylesOnce(): void {
