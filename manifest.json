@@ -3,7 +3,6 @@
   "name": "YouTube Mark as Watched",
   "version": "0.1.0",
   "description": "Adds a button to YouTube thumbnails to mark videos as watched in native YouTube history.",
-  "permissions": ["storage"],
   "host_permissions": ["*://*.youtube.com/*"],
   "content_scripts": [
     {
