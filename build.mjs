@@ -1,5 +1,5 @@
 import { build } from 'esbuild';
-import { copyFile, mkdir } from 'node:fs/promises';
+import { copyFile, mkdir, cp } from 'node:fs/promises';
 
 await mkdir('dist', { recursive: true });
 await build({
@@ -11,4 +11,5 @@ await build({
   logLevel: 'info',
 });
 await copyFile('manifest.json', 'dist/manifest.json');
+await cp('icons', 'dist/icons', { recursive: true });
 console.log('Build complete -> dist/');
