@@ -9,7 +9,7 @@ One click writes the video to your **real YouTube watch history**: it shows up i
 [History](https://www.youtube.com/feed/history), gets YouTube's own red progress bar and syncs to your
 other devices.
 
-Other "mark as watched" extensions, such as Watchmarker, keep their own local list and just grey out
+Other "mark as watched" extensions, such as [Watchmarker](https://github.com/sniklaus/youtube-watchmarker), keep their own local list and just grey out
 thumbnails. This one records the view in your YouTube account instead.
 
 <p align="center"><img src=".github/screenshot.png" alt="The eye button on a hovered YouTube thumbnail" width="371"></p>
@@ -33,10 +33,17 @@ It isn't on the Chrome Web Store; install it from a release:
 2. Open `chrome://extensions` and turn on **Developer mode**.
 3. Click **Load unpacked** and pick the unzipped folder.
 
-Unpacked extensions don't update themselves. To update, unzip the new release over the same folder and
-click ↻ on the extension's card.
+Unpacked extensions don't update themselves. To update, delete the old folder, put the newly unzipped one
+at the same path and click ↻ on the extension's card.
 
-Or build from source with [Bun](https://bun.sh): `bun install && bun run build`, then load `.output/chrome-mv3`.
+Or build from source with [Bun](https://bun.sh):
+
+```bash
+git clone https://github.com/shirodune/youtube-mark-watched.git
+cd youtube-mark-watched
+bun install
+bun run build   # then load .output/chrome-mv3
+```
 
 ## How it works
 
@@ -55,6 +62,7 @@ watched it to the end. The full mechanism is in [SPEC.md](SPEC.md) (in Chinese).
 ## Development
 
 ```bash
+bun install
 bun run dev     # build to .output/chrome-mv3-dev; load that folder once, then it reloads on save
 bun run check   # lint + typecheck + tests
 ```
