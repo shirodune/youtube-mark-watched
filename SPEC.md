@@ -42,16 +42,22 @@ local database.
   `<script>` every 250ms; rescanning for that is wasted work), or when an undecorated link's `href` becomes
   a watch URL without any node being added.
 - **B4** No button on ad cards (an outer `ytd-rich-item-renderer` or `yt-lockup-view-model` containing
-  `ad-badge-view-model`) or on links that aren't thumbnails (e.g. titles).
+  `ad-badge-view-model`), on links that aren't thumbnails (e.g. titles), or on a playlist's header cover
+  (`ytd-playlist-header-renderer`: it links to the first video but stands for the whole playlist).
 
 **Click**
 - **C1** Signed out (the masthead shows a sign-in link) → toast "Sign in to mark videos as watched", no
   requests.
-- **C2** Signed in → immediately show a red bar at the bottom of the thumbnail and switch the button to its
-  done state (optimistic), then write native history in the background. The bar goes inside the thumbnail
-  element (`yt-thumbnail-view-model`, falling back to the `<a>`), next to YouTube's own progress bar, so it
-  gets the thumbnail's width and rounded corners: on History the `<a>` has 16px right padding, and a bar
-  spanning the `<a>` overshoots the thumbnail.
+- **C2** Signed in → immediately show a full red progress bar on the thumbnail and switch the button to its
+  done state (optimistic), then write native history in the background. The bar mimics YouTube's own: 4px
+  high, YouTube's red (`var(--yt-sys-color-baseline--static-brand-red, #f03)`), inside the thumbnail element
+  (`yt-thumbnail-view-model`, falling back to the `<a>`) where the native bar lives, so it gets the
+  thumbnail's width and rounded corners. (Unwatched thumbnails have no native bar to reuse; YouTube only
+  renders one when it has progress data.) The `<a>` is often bigger than the thumbnail (12px bottom padding
+  on Home/Subscriptions/channels, 16px right on History, 12px right in the watch sidebar), so a bar spanning
+  the `<a>` lands outside it. No bar inside the inline preview (`ytd-video-preview`): its link has no
+  thumbnail box (height 0), and the preview covers the thumbnail that does get the bar; the button still
+  switches to done.
 - **C3** Write fails → remove the bar, reset the button, toast "Couldn’t mark as watched".
 - **C4** Clicks on a video whose request is still in flight are ignored.
 - **C5** The red bar lasts for the current page view only; it is not re-applied after a reload, where

@@ -131,4 +131,17 @@ describe('watched bar placement (C2)', () => {
     removeWatchedStyle(a);
     expect(a.querySelector('.ymw-watched-bar')).toBeNull();
   });
+
+  it('draws no bar inside the inline preview, but the button still shows done', () => {
+    const preview = document.createElement('ytd-video-preview');
+    const a = document.createElement('a');
+    a.setAttribute('href', '/watch?v=AAA');
+    a.appendChild(document.createElement('div'));
+    preview.appendChild(a);
+    document.body.appendChild(preview);
+    injectButton(a, vi.fn());
+    syncWatchedState(a, new Set(['AAA']));
+    expect(a.querySelector('.ymw-watched-bar')).toBeNull();
+    expect(buttonOf(a)!.classList.contains('ymw-done')).toBe(true);
+  });
 });

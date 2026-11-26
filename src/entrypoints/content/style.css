@@ -56,5 +56,5 @@ ytd-video-preview:hover .ymw-mark-btn {
   bottom: 0;
   height: 4px;
   z-index: 60;
-  background: #ff0000;
+  background: var(--yt-sys-color-baseline--static-brand-red, #f03);
 }

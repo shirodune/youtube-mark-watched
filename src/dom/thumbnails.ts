@@ -21,6 +21,7 @@ export function findThumbnailAnchors(root: ParentNode): HTMLAnchorElement[] {
     if (a.querySelector(':scope > .ymw-mark-btn')) continue;
     if (!isThumbnailAnchor(a)) continue;
     if (isInsideAd(a)) continue;
+    if (a.closest('ytd-playlist-header-renderer')) continue; // B4: the cover stands for the playlist
     if (!videoIdOfThumbnail(a)) continue;
     out.push(a);
   }

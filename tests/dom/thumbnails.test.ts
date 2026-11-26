@@ -42,6 +42,14 @@ describe('findThumbnailAnchors', () => {
     expect(findThumbnailAnchors(root)).toHaveLength(0);
   });
 
+  it('skips the playlist header cover (B4)', () => {
+    const root = lockup(`
+      <ytd-playlist-header-renderer>
+        <div><a href="/watch?v=FIRST&list=WL"><img></a></div>
+      </ytd-playlist-header-renderer>`);
+    expect(findThumbnailAnchors(root)).toHaveLength(0);
+  });
+
   it('does not double-pick anchors that already have a button', () => {
     const root = lockup(
       `<a href="/watch?v=CCC" data-ymw="1"><yt-thumbnail-view-model></yt-thumbnail-view-model><button class="ymw-mark-btn"></button></a>`,

@@ -42,6 +42,8 @@ export function thumbnailBox(anchor: HTMLAnchorElement): Element {
 
 export function applyWatchedStyle(anchor: HTMLAnchorElement): void {
   anchor.classList.add('ymw-watched');
+  // The inline preview's link has no thumbnail box; the thumbnail it covers shows the bar (C2).
+  if (anchor.closest('ytd-video-preview')) return;
   if (!anchor.querySelector('.ymw-watched-bar')) {
     const bar = document.createElement('div');
     bar.className = 'ymw-watched-bar';
