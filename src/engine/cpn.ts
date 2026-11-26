@@ -1,7 +1,6 @@
 // src/engine/cpn.ts
 
-export const CPN_CHARS =
-  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+export const CPN_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
 export function generateCpn(): string {
   let cpn = '';

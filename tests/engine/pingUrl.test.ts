@@ -1,5 +1,10 @@
-import { describe, it, expect } from 'vitest';
-import { appendParams, buildPlaybackPingUrl, buildWatchtimePingUrl, watchtimeSegments } from '../../src/engine/pingUrl';
+import { describe, expect, it } from 'vitest';
+import {
+  appendParams,
+  buildPlaybackPingUrl,
+  buildWatchtimePingUrl,
+  watchtimeSegments,
+} from '../../src/engine/pingUrl';
 
 const PB_BASE = 'https://www.youtube.com/api/stats/playback?ns=yt&el=detailpage&docid=ID&ei=XYZ';
 const WT_BASE = 'https://www.youtube.com/api/stats/watchtime?ns=yt&el=detailpage&docid=ID&ei=XYZ';

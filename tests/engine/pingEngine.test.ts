@@ -1,15 +1,19 @@
 // tests/engine/pingEngine.test.ts
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { markWatchedViaPings } from '../../src/engine/pingEngine';
 
 function watchPageHtml(len = '100'): string {
-  return 'x var ytInitialPlayerResponse = ' + JSON.stringify({
-    playbackTracking: {
-      videostatsPlaybackUrl: { baseUrl: 'https://www.youtube.com/api/stats/playback?docid=ID&ei=E' },
-      videostatsWatchtimeUrl: { baseUrl: 'https://www.youtube.com/api/stats/watchtime?docid=ID&ei=E' },
-    },
-    videoDetails: { lengthSeconds: len },
-  }) + '; y';
+  return (
+    'x var ytInitialPlayerResponse = ' +
+    JSON.stringify({
+      playbackTracking: {
+        videostatsPlaybackUrl: { baseUrl: 'https://www.youtube.com/api/stats/playback?docid=ID&ei=E' },
+        videostatsWatchtimeUrl: { baseUrl: 'https://www.youtube.com/api/stats/watchtime?docid=ID&ei=E' },
+      },
+      videoDetails: { lengthSeconds: len },
+    }) +
+    '; y'
+  );
 }
 
 describe('markWatchedViaPings', () => {
@@ -19,7 +23,8 @@ describe('markWatchedViaPings', () => {
     const fakeFetch = vi.fn((url: string, init?: RequestInit) => {
       calls.push(url);
       inits.push(init);
-      if (url.includes('/watch?v=')) return Promise.resolve({ ok: true, text: () => Promise.resolve(watchPageHtml('100')) });
+      if (url.includes('/watch?v='))
+        return Promise.resolve({ ok: true, text: () => Promise.resolve(watchPageHtml('100')) });
       return Promise.resolve({ ok: true, status: 204, text: () => Promise.resolve('') });
     });
     const res = await markWatchedViaPings('ID', { fetch: fakeFetch as unknown as typeof fetch });
@@ -45,8 +50,10 @@ describe('markWatchedViaPings', () => {
 
   it('returns ok:false when the playback ping is not ok', async () => {
     const fakeFetch = vi.fn((url: string) => {
-      if (url.includes('/watch?v=')) return Promise.resolve({ ok: true, text: () => Promise.resolve(watchPageHtml()) });
-      if (url.includes('/api/stats/playback')) return Promise.resolve({ ok: false, status: 403, text: () => Promise.resolve('') });
+      if (url.includes('/watch?v='))
+        return Promise.resolve({ ok: true, text: () => Promise.resolve(watchPageHtml()) });
+      if (url.includes('/api/stats/playback'))
+        return Promise.resolve({ ok: false, status: 403, text: () => Promise.resolve('') });
       return Promise.resolve({ ok: true, status: 204, text: () => Promise.resolve('') });
     });
     const res = await markWatchedViaPings('ID', { fetch: fakeFetch as unknown as typeof fetch });
@@ -69,7 +76,11 @@ describe('markWatchedViaPings', () => {
         return Promise.reject(new TypeError("Failed to execute 'fetch' on 'Window': Illegal invocation"));
       }
       const body = String(url).includes('/watch?v=') ? watchPageHtml('10') : '';
-      return Promise.resolve({ ok: true, status: 204, text: () => Promise.resolve(body) } as unknown as Response);
+      return Promise.resolve({
+        ok: true,
+        status: 204,
+        text: () => Promise.resolve(body),
+      } as unknown as Response);
     };
     globalThis.fetch = guarded as unknown as typeof fetch;
     try {

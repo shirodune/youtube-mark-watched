@@ -16,7 +16,8 @@ export function findThumbnailAnchors(root: ParentNode): HTMLAnchorElement[] {
   const out: HTMLAnchorElement[] = [];
   const anchors = root.querySelectorAll<HTMLAnchorElement>('a[href*="/watch?v="]');
   for (const a of anchors) {
-    if (a.hasAttribute(DECORATED_ATTR)) continue;
+    // Re-inject if YouTube re-rendered the anchor's children and dropped our button (B1).
+    if (a.querySelector(':scope > .ymw-mark-btn')) continue;
     if (!isThumbnailAnchor(a)) continue;
     if (isInsideAd(a)) continue;
     if (!videoIdOfThumbnail(a)) continue;

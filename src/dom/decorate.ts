@@ -4,8 +4,17 @@ import { DECORATED_ATTR, videoIdOfThumbnail } from './thumbnails';
 const EYE_SVG =
   '<svg viewBox="0 0 24 24"><path d="M12 5c-5 0-9 4.5-10 7 1 2.5 5 7 10 7s9-4.5 10-7c-1-2.5-5-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8zm0-6a2 2 0 100 4 2 2 0 000-4z"/></svg>';
 
+/**
+ * The button lives inside the thumbnail <a> on purpose. Nesting a button in a link is not valid HTML,
+ * but the anchor is the only element whose box is exactly the thumbnail: moving the button to the
+ * anchor's parent put it against the whole card (title included) and broke sizing/positioning.
+ */
+export function buttonOf(anchor: HTMLAnchorElement): HTMLButtonElement | null {
+  return anchor.querySelector<HTMLButtonElement>(':scope > button.ymw-mark-btn');
+}
+
 export function injectButton(anchor: HTMLAnchorElement, onClick: () => void): void {
-  if (anchor.hasAttribute(DECORATED_ATTR)) return;
+  if (buttonOf(anchor)) return;
   anchor.setAttribute(DECORATED_ATTR, '1');
   anchor.classList.add('ymw-anchor');
 
@@ -38,8 +47,7 @@ export function removeWatchedStyle(anchor: HTMLAnchorElement): void {
 }
 
 export function markButtonState(anchor: HTMLAnchorElement, done: boolean): void {
-  const btn = anchor.querySelector('button.ymw-mark-btn');
-  if (btn) btn.classList.toggle('ymw-done', done);
+  buttonOf(anchor)?.classList.toggle('ymw-done', done);
 }
 
 /** Sync bar + button with the video the anchor points at *now* (YouTube reuses nodes). */

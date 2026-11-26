@@ -1,7 +1,7 @@
 // src/engine/pingEngine.ts
 import { generateCpn } from './cpn';
-import { fetchTrackingUrls } from './playerApi';
 import { buildPlaybackPingUrl, buildWatchtimePingUrl, watchtimeSegments } from './pingUrl';
+import { fetchTrackingUrls } from './playerApi';
 import type { MarkResult } from './types';
 
 export interface PingEngineDeps {
@@ -27,7 +27,9 @@ export async function markWatchedViaPings(
     const segments = watchtimeSegments(duration);
     for (const [i, [st, et]] of segments.entries()) {
       const final = i === segments.length - 1;
-      const res = await deps.fetch(buildWatchtimePingUrl(watchtimeUrl, cpn, st, et, { final }), { credentials: 'include' });
+      const res = await deps.fetch(buildWatchtimePingUrl(watchtimeUrl, cpn, st, et, { final }), {
+        credentials: 'include',
+      });
       if (!res.ok) return { ok: false, error: `watchtime ping failed: ${res.status}` };
     }
 

@@ -1,9 +1,11 @@
 // src/entrypoints/content.ts — content script entry (see SPEC.md §3)
-import { isActiveSurface } from '@/page/pageScope';
+
+import { injectButton, syncWatchedState } from '@/dom/decorate';
+import { coalesce } from '@/dom/schedule';
 import { injectStylesOnce } from '@/dom/styles';
 import { DECORATED_ATTR, findThumbnailAnchors, videoIdOfThumbnail } from '@/dom/thumbnails';
-import { injectButton, syncWatchedState } from '@/dom/decorate';
 import { markWatched } from '@/engine';
+import { isActiveSurface } from '@/page/pageScope';
 import { showToast } from '@/ui/toast';
 
 const inFlight = new Set<string>();
@@ -61,17 +63,9 @@ function scan(): void {
   }
 }
 
-function debounce(fn: () => void, ms: number): () => void {
-  let t: ReturnType<typeof setTimeout> | undefined;
-  return () => {
-    if (t) clearTimeout(t);
-    t = setTimeout(fn, ms);
-  };
-}
-
 function start(): void {
   injectStylesOnce();
-  const run = debounce(scan, 250);
+  const run = coalesce(scan, 250);
   new MutationObserver((records) => {
     let added = false;
     for (const r of records) {
@@ -92,7 +86,7 @@ function start(): void {
 }
 
 export default defineContentScript({
-  matches: ['*://*.youtube.com/*'],
+  matches: ['https://www.youtube.com/*'],
   runAt: 'document_idle',
   main: start,
 });

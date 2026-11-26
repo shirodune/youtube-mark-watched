@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from 'vitest';
-import { injectButton, applyWatchedStyle, markButtonState, syncWatchedState } from '../../src/dom/decorate';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  applyWatchedStyle,
+  buttonOf,
+  injectButton,
+  markButtonState,
+  syncWatchedState,
+} from '../../src/dom/decorate';
 import { DECORATED_ATTR } from '../../src/dom/thumbnails';
 
 function thumbAnchor(): HTMLAnchorElement {
@@ -18,8 +24,8 @@ describe('injectButton', () => {
     injectButton(a, onClick);
     expect(a.hasAttribute(DECORATED_ATTR)).toBe(true);
     expect(a.classList.contains('ymw-anchor')).toBe(true);
-    const btn = a.querySelector('button.ymw-mark-btn') as HTMLButtonElement;
-    expect(btn).toBeTruthy();
+    const btn = buttonOf(a)!;
+    expect(btn.parentElement).toBe(a);
     expect(btn.getAttribute('aria-label')).toBe('Mark as watched');
     btn.click();
     expect(onClick).toHaveBeenCalledOnce();
@@ -41,7 +47,7 @@ describe('applyWatchedStyle + markButtonState', () => {
     expect(a.classList.contains('ymw-watched')).toBe(true);
     expect(a.querySelector('.ymw-watched-bar')).toBeTruthy();
     markButtonState(a, true);
-    expect(a.querySelector('button.ymw-mark-btn')!.classList.contains('ymw-done')).toBe(true);
+    expect(buttonOf(a)!.classList.contains('ymw-done')).toBe(true);
   });
 
   it('applyWatchedStyle is idempotent (one bar only)', () => {
@@ -55,7 +61,7 @@ describe('applyWatchedStyle + markButtonState', () => {
 describe('syncWatchedState (C6: reused nodes follow their current href)', () => {
   const isOn = (a: HTMLAnchorElement) => ({
     bar: !!a.querySelector('.ymw-watched-bar'),
-    done: a.querySelector('button.ymw-mark-btn')!.classList.contains('ymw-done'),
+    done: buttonOf(a)!.classList.contains('ymw-done'),
   });
 
   it('shows bar + done when the current video is marked', () => {

@@ -17,14 +17,19 @@ Chrome 扩展（MV3）。在 YouTube 缩略图上加一个"标记为已看"按�
 | 订阅 `/feed/subscriptions` | Shorts（`/shorts/` 链接） |
 | 频道页 `/@…` `/channel/…` `/c/…` `/user/…` | 广告卡片 |
 | 观看页侧栏 `/watch` | 其他所有路径 |
+| 播放列表 `/playlist`（含稍后观看 `list=WL`） | |
+| 观看记录 `/feed/history` | |
+| 「你」页面 `/feed/you` | |
 
 ## 3. 行为（验收条目）
 
 **按钮**
-- **B1** 每个指向 `/watch?v=<id>` 且含缩略图图片的链接，注入一个按钮；同一链接只注入一次。
-- **B2** 按钮平时隐藏，悬停缩略图（或键盘聚焦到缩略图链接内）时显示在左上角；`aria-label="Mark as watched"`。
+- **B1** 每个指向 `/watch?v=<id>` 且含缩略图图片的链接，注入一个按钮（放在 `<a>` 里面：只有它的盒子正好是缩略图）；
+  同一链接只有一个按钮，YouTube 重新渲染丢掉按钮后，下次扫描补回。
+- **B2** 按钮平时隐藏，悬停缩略图（或键盘聚焦到缩略图链接内）时显示；`aria-label="Mark as watched"`。
+  位置：左上角，40px 圆形（与内联预览的原生按钮同尺寸）；缩略图宽度 ≤ 300px（如观看页侧栏）用 28px 小按钮。
   悬停后 YouTube 弹出的内联预览（`ytd-video-preview`）会盖住缩略图，预览上也要显示按钮。
-- **B3** 无限滚动、SPA 跳转（`yt-navigate-finish`）后的新缩略图也会注入（MutationObserver，250ms 防抖）。
+- **B3** 无限滚动、SPA 跳转（`yt-navigate-finish`）后的新缩略图也会注入（MutationObserver；首个变更后 250ms 扫描一次，持续变更不会推迟扫描——观看记录页每 250ms 就有变更，防抖会被饿死）。
 - **B4** 广告卡片（含 `ad-badge-view-model`）、非缩略图的标题链接不注入。
 
 **点击**
@@ -39,7 +44,8 @@ Chrome 扩展（MV3）。在 YouTube 缩略图上加一个"标记为已看"按�
 ## 4. 写入机制（已由 2026-05-30 spike 在真实账号上验证）
 
 YouTube 没有写观看记录的公开 API（Data API v3 自 2016 年起不支持 `HL` 列表）。
-只能复刻播放器的上报。全部在 content script 里同源 `fetch(..., { credentials: 'include' })`：
+只能复刻播放器的上报。全部在 content script 里 `fetch(..., { credentials: 'include' })`
+（`/watch` 同源；ping 发往 `s.youtube.com`，YouTube 的 CORS 允许 `www.youtube.com` 带 cookie 访问）：
 
 1. `GET /watch?v=<id>`，从 HTML 中提取 `ytInitialPlayerResponse`，读取
    `playbackTracking.videostatsPlaybackUrl.baseUrl`、`videostatsWatchtimeUrl.baseUrl`、`videoDetails.lengthSeconds`。
@@ -63,11 +69,12 @@ YouTube 没有写观看记录的公开 API（Data API v3 自 2016 年起不支�
 
 - 依赖 YouTube 未公开的接口和 DOM（新旧组件 `ytd-*` / `yt-*-view-model` 并存），随时可能失效。
 - 这种自动化违反 YouTube 服务条款；仅供个人使用，用户已知情接受。
-- 权限只要 `host_permissions: *://*.youtube.com/*`，不申请其他权限，不收集、不外传任何数据。
+- 最小权限：不申请任何 `permissions` / `host_permissions`，content script 只匹配 `https://www.youtube.com/*`
+  （MV3 content script 的请求按页面身份走 CORS，不使用扩展的 host 权限，见 §4）。不收集、不外传任何数据。
 
 ## 7. 工程
 
-- 技术栈：WXT（Vite）+ TypeScript + Vitest，包管理用 Bun。
+- 技术栈：WXT（Vite）+ TypeScript + Vitest + Biome（lint/格式化），包管理用 Bun；GitHub Actions 跑 `check` 和 `build`。
 - `src/entrypoints/content.ts` 入口；`src/page`（范围判断）、`src/dom`（查找/注入/样式）、
   `src/engine`（写入机制，对外只暴露 `markWatched(videoId): Promise<{ ok; error? }>`）、`src/ui`（toast）。
 - 纯逻辑（`page`、`dom`、`engine`）必须有单元测试；`tests/` 镜像 `src/` 目录。
@@ -79,10 +86,12 @@ YouTube 没有写观看记录的公开 API（Data API v3 自 2016 年起不支�
 | `bun run build` | 生产构建到 `.output/chrome-mv3` |
 | `bun run zip` | 打包上架用 zip |
 | `bun run test` | 单元测试（注意不是 `bun test`） |
+| `bun run format` | Biome 格式化并自动修复 |
+| `bun run check` | lint + typecheck + 测试（CI 同款，提交前跑） |
 
 ## 8. 手动验收（在已登录的真实 Chrome 中，可由 Claude in Chrome 执行）
 
-1. 首页、订阅、频道页、观看页侧栏：悬停出现按钮（B1、B2）；搜索页不出现。
+1. 首页、订阅、频道页、观看页侧栏、播放列表（含稍后观看）、观看记录、「你」页面：悬停出现按钮（B1、B2）；搜索页不出现。
 2. 向下滚动后新卡片也有按钮（B3）。
 3. 选一个没看过的短视频点击：立即出现红条（C2）；约 1 分钟后 `/feed/history` 里出现该视频。
 4. 对一个首映视频点击：红条消失并出现失败提示（C3）。

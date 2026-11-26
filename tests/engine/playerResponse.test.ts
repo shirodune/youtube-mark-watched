@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { extractJsonObject, extractPlayerResponse } from '../../src/engine/playerResponse';
 
 describe('extractJsonObject', () => {
@@ -14,13 +14,16 @@ describe('extractJsonObject', () => {
 
 describe('extractPlayerResponse', () => {
   it('parses playbackTracking and lengthSeconds from page HTML', () => {
-    const html = '<script>var ytInitialPlayerResponse = ' + JSON.stringify({
-      playbackTracking: {
-        videostatsPlaybackUrl: { baseUrl: 'https://www.youtube.com/api/stats/playback?docid=ID' },
-        videostatsWatchtimeUrl: { baseUrl: 'https://www.youtube.com/api/stats/watchtime?docid=ID' },
-      },
-      videoDetails: { lengthSeconds: '212' },
-    }) + ';</script>';
+    const html =
+      '<script>var ytInitialPlayerResponse = ' +
+      JSON.stringify({
+        playbackTracking: {
+          videostatsPlaybackUrl: { baseUrl: 'https://www.youtube.com/api/stats/playback?docid=ID' },
+          videostatsWatchtimeUrl: { baseUrl: 'https://www.youtube.com/api/stats/watchtime?docid=ID' },
+        },
+        videoDetails: { lengthSeconds: '212' },
+      }) +
+      ';</script>';
     const pr = extractPlayerResponse(html);
     expect(pr.playbackTracking.videostatsPlaybackUrl.baseUrl).toContain('/api/stats/playback');
     expect(pr.videoDetails.lengthSeconds).toBe('212');

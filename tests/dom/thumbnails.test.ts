@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { findThumbnailAnchors, videoIdOfThumbnail } from '../../src/dom/thumbnails';
 
 function lockup(html: string): HTMLElement {
@@ -31,9 +31,18 @@ describe('findThumbnailAnchors', () => {
     expect(findThumbnailAnchors(root)).toHaveLength(0);
   });
 
-  it('does not double-pick already-decorated anchors', () => {
-    const root = lockup(`<a href="/watch?v=CCC" data-ymw="1"><yt-thumbnail-view-model></yt-thumbnail-view-model></a>`);
+  it('does not double-pick anchors that already have a button', () => {
+    const root = lockup(
+      `<a href="/watch?v=CCC" data-ymw="1"><yt-thumbnail-view-model></yt-thumbnail-view-model><button class="ymw-mark-btn"></button></a>`,
+    );
     expect(findThumbnailAnchors(root)).toHaveLength(0);
+  });
+
+  it('re-picks a decorated anchor whose button YouTube dropped (B1)', () => {
+    const root = lockup(
+      `<a href="/watch?v=CCC" data-ymw="1"><yt-thumbnail-view-model></yt-thumbnail-view-model></a>`,
+    );
+    expect(findThumbnailAnchors(root)).toHaveLength(1);
   });
 
   it('also matches legacy thumbnails (img inside anchor)', () => {

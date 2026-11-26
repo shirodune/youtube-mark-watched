@@ -12,12 +12,26 @@ export function extractVideoId(href: string): string | null {
   return url.searchParams.get('v');
 }
 
+// SPEC §2 scope.
+const ACTIVE_PATHS = new Set([
+  '/',
+  '/feed/subscriptions',
+  '/watch',
+  '/playlist',
+  '/feed/history',
+  '/feed/you',
+]);
+
 export function isActiveSurface(pathname: string): boolean {
-  if (pathname === '/' || pathname === '/feed/subscriptions' || pathname === '/watch') {
+  if (ACTIVE_PATHS.has(pathname)) {
     return true;
   }
-  if (pathname.startsWith('/@') || pathname.startsWith('/channel/') ||
-      pathname.startsWith('/c/') || pathname.startsWith('/user/')) {
+  if (
+    pathname.startsWith('/@') ||
+    pathname.startsWith('/channel/') ||
+    pathname.startsWith('/c/') ||
+    pathname.startsWith('/user/')
+  ) {
     return true;
   }
   return false;

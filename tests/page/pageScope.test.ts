@@ -1,6 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { extractVideoId } from '../../src/page/pageScope';
-import { isActiveSurface } from '../../src/page/pageScope';
+import { describe, expect, it } from 'vitest';
+import { extractVideoId, isActiveSurface } from '../../src/page/pageScope';
 
 describe('extractVideoId', () => {
   it('extracts id from a relative watch href', () => {
@@ -35,5 +34,11 @@ describe('isActiveSurface', () => {
     expect(isActiveSurface('/user/SomeUser')).toBe(true);
   });
   it('is INACTIVE on search results', () => expect(isActiveSurface('/results')).toBe(false));
-  it('is INACTIVE on history feed', () => expect(isActiveSurface('/feed/history')).toBe(false));
+  it('is active on playlists, incl. Watch Later', () => expect(isActiveSurface('/playlist')).toBe(true));
+  it('is active on history', () => expect(isActiveSurface('/feed/history')).toBe(true));
+  it('is active on the You page', () => expect(isActiveSurface('/feed/you')).toBe(true));
+  it('is INACTIVE on other feeds', () => {
+    expect(isActiveSurface('/feed/trending')).toBe(false);
+    expect(isActiveSurface('/feed/playlists')).toBe(false);
+  });
 });
