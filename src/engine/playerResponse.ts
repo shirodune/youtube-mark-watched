@@ -1,8 +1,8 @@
 // src/engine/playerResponse.ts
 
 /** Extract the first balanced `{...}` object that appears after `marker`. */
-export function extractJsonObject(text: string, marker: string): string {
-  const markerIdx = text.indexOf(marker);
+export function extractJsonObject(text: string, marker: string | RegExp): string {
+  const markerIdx = typeof marker === 'string' ? text.indexOf(marker) : text.search(marker);
   if (markerIdx === -1) throw new Error(`marker not found: ${marker}`);
   const start = text.indexOf('{', markerIdx);
   if (start === -1) throw new Error(`no object after marker: ${marker}`);
@@ -37,5 +37,6 @@ export interface PlayerResponse {
 }
 
 export function extractPlayerResponse(html: string): PlayerResponse {
-  return JSON.parse(extractJsonObject(html, 'ytInitialPlayerResponse')) as PlayerResponse;
+  // Match the assignment, not the first mention: the name also appears in other scripts (SPEC §4.1).
+  return JSON.parse(extractJsonObject(html, /ytInitialPlayerResponse\s*=\s*\{/)) as PlayerResponse;
 }

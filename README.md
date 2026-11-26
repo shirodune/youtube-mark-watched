@@ -49,11 +49,12 @@ bun run build   # then load .output/chrome-mv3
 
 YouTube has no API for writing watch history. When you play a video, the player reports progress to
 YouTube's stats endpoints. The extension sends the same reports for the video you clicked, as if you had
-watched it to the end. The full mechanism is in [SPEC.md](SPEC.md) (in Chinese).
+watched it to the end. The full mechanism is in [SPEC.md](SPEC.md).
 
 ## Limitations
 
 - You must be signed in to YouTube.
+- If your watch history is paused, nothing gets recorded, but the button can't tell and still shows success.
 - Premieres and upcoming streams can't be marked: YouTube has no playback data for them yet.
 - It relies on YouTube's undocumented endpoints and page layout, so a YouTube update can break it.
 - Automating playback reports goes against YouTube's Terms of Service. It's meant for personal use; use it

@@ -3,7 +3,7 @@ import './style.css';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 
 import { injectButton, syncWatchedState, undecorate } from '@/dom/decorate';
-import { coalesce } from '@/dom/schedule';
+import { addsContent, coalesce } from '@/dom/schedule';
 import { DECORATED_ATTR, findThumbnailAnchors, videoIdOfThumbnail } from '@/dom/thumbnails';
 import { markWatched } from '@/engine';
 import { isActiveSurface } from '@/page/pageScope';
@@ -77,8 +77,9 @@ function start(ctx: ContentScriptContext): void {
   const observer = new MutationObserver((records) => {
     let added = false;
     for (const r of records) {
-      if (r.type === 'childList') added = true;
-      else if (r.target instanceof HTMLAnchorElement) {
+      if (r.type === 'childList') {
+        if (addsContent(r)) added = true;
+      } else if (r.target instanceof HTMLAnchorElement) {
         if (r.target.hasAttribute(DECORATED_ATTR)) {
           syncWatchedState(r.target, marked); // reused node now points at another video (C6)
         } else if (videoIdOfThumbnail(r.target)) {

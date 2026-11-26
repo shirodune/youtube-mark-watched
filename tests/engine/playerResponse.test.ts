@@ -29,3 +29,14 @@ describe('extractPlayerResponse', () => {
     expect(pr.videoDetails.lengthSeconds).toBe('212');
   });
 });
+
+describe('extractPlayerResponse marker (§4.1)', () => {
+  it('uses the assignment, not an earlier mention of the name', () => {
+    const html =
+      '<script>if (window.ytInitialPlayerResponse) { use({"wrong": true}); }</script>' +
+      '<script>var ytInitialPlayerResponse = {"playbackTracking":{"videostatsPlaybackUrl":{"baseUrl":"p"},' +
+      '"videostatsWatchtimeUrl":{"baseUrl":"w"}},"videoDetails":{"lengthSeconds":"5"}};</script>';
+    const pr = extractPlayerResponse(html);
+    expect(pr.playbackTracking.videostatsPlaybackUrl.baseUrl).toBe('p');
+  });
+});
