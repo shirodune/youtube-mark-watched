@@ -91,7 +91,7 @@ YouTube 没有写观看记录的公开 API（Data API v3 自 2016 年起不支�
 | `bun run format` | Biome 格式化并自动修复 |
 | `bun run check` | lint + typecheck + 测试（CI 同款，提交前跑） |
 
-发版：改 `package.json` 的 `version` → 提交 → `git tag v<version>` → `git push --follow-tags`。
+发版：改 `package.json` 的 `version` → 提交 → `git tag -a v<version> -m v<version>`（必须是附注 tag，`--follow-tags` 不推轻量 tag）→ `git push --follow-tags`。
 GitHub Actions（`release.yml`）校验 tag 与版本号一致，跑 `check`，再把 `bun run zip` 的产物发布到 GitHub Release。
 
 ## 8. 手动验收（在已登录的真实 Chrome 中，可由 Claude in Chrome 执行）
