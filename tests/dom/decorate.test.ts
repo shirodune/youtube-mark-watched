@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { injectButton, applyWatchedStyle, markButtonState } from '../../src/dom/decorate';
+import { injectButton, applyWatchedStyle, markButtonState, syncWatchedState } from '../../src/dom/decorate';
 import { DECORATED_ATTR } from '../../src/dom/thumbnails';
 
 function thumbAnchor(): HTMLAnchorElement {
@@ -49,5 +49,39 @@ describe('applyWatchedStyle + markButtonState', () => {
     applyWatchedStyle(a);
     applyWatchedStyle(a);
     expect(a.querySelectorAll('.ymw-watched-bar')).toHaveLength(1);
+  });
+});
+
+describe('syncWatchedState (C6: reused nodes follow their current href)', () => {
+  const isOn = (a: HTMLAnchorElement) => ({
+    bar: !!a.querySelector('.ymw-watched-bar'),
+    done: a.querySelector('button.ymw-mark-btn')!.classList.contains('ymw-done'),
+  });
+
+  it('shows bar + done when the current video is marked', () => {
+    const a = thumbAnchor();
+    injectButton(a, vi.fn());
+    syncWatchedState(a, new Set(['AAA']));
+    expect(isOn(a)).toEqual({ bar: true, done: true });
+  });
+
+  it('clears bar + done when the anchor is reused for an unmarked video', () => {
+    const a = thumbAnchor();
+    injectButton(a, vi.fn());
+    const marked = new Set(['AAA']);
+    syncWatchedState(a, marked);
+    a.setAttribute('href', '/watch?v=BBB');
+    syncWatchedState(a, marked);
+    expect(isOn(a)).toEqual({ bar: false, done: false });
+  });
+
+  it('clears state when the video is unmarked (failure rollback)', () => {
+    const a = thumbAnchor();
+    injectButton(a, vi.fn());
+    const marked = new Set(['AAA']);
+    syncWatchedState(a, marked);
+    marked.delete('AAA');
+    syncWatchedState(a, marked);
+    expect(isOn(a)).toEqual({ bar: false, done: false });
   });
 });

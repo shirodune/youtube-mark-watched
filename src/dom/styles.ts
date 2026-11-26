@@ -11,7 +11,9 @@ const CSS = `
 .ymw-mark-btn svg { width: 16px; height: 16px; fill: currentColor; }
 .ymw-mark-btn:hover { background: rgba(0,0,0,0.8); }
 .ymw-mark-btn.ymw-done { background: rgba(0,0,0,0.85); color: #3ea6ff; }
-.ymw-anchor:hover .ymw-mark-btn, .ymw-mark-btn:focus-visible { display: inline-flex; }
+.ymw-anchor:hover .ymw-mark-btn,
+.ymw-anchor:focus-within .ymw-mark-btn,
+ytd-video-preview:hover .ymw-mark-btn { display: inline-flex; }
 .ymw-watched-bar {
   position: absolute; left: 0; right: 0; bottom: 0; height: 4px; z-index: 60;
   background: #ff0000;

@@ -1,5 +1,5 @@
 // src/dom/decorate.ts
-import { DECORATED_ATTR } from './thumbnails';
+import { DECORATED_ATTR, videoIdOfThumbnail } from './thumbnails';
 
 const EYE_SVG =
   '<svg viewBox="0 0 24 24"><path d="M12 5c-5 0-9 4.5-10 7 1 2.5 5 7 10 7s9-4.5 10-7c-1-2.5-5-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8zm0-6a2 2 0 100 4 2 2 0 000-4z"/></svg>';
@@ -40,4 +40,13 @@ export function removeWatchedStyle(anchor: HTMLAnchorElement): void {
 export function markButtonState(anchor: HTMLAnchorElement, done: boolean): void {
   const btn = anchor.querySelector('button.ymw-mark-btn');
   if (btn) btn.classList.toggle('ymw-done', done);
+}
+
+/** Sync bar + button with the video the anchor points at *now* (YouTube reuses nodes). */
+export function syncWatchedState(anchor: HTMLAnchorElement, marked: ReadonlySet<string>): void {
+  const id = videoIdOfThumbnail(anchor);
+  const on = !!id && marked.has(id);
+  if (on) applyWatchedStyle(anchor);
+  else removeWatchedStyle(anchor);
+  markButtonState(anchor, on);
 }

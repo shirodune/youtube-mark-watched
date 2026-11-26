@@ -1,12 +1,22 @@
 // src/entrypoints/content.ts — content script entry (see SPEC.md §3)
 import { isActiveSurface } from '@/page/pageScope';
 import { injectStylesOnce } from '@/dom/styles';
-import { findThumbnailAnchors, videoIdOfThumbnail } from '@/dom/thumbnails';
-import { injectButton, applyWatchedStyle, removeWatchedStyle, markButtonState } from '@/dom/decorate';
+import { DECORATED_ATTR, findThumbnailAnchors, videoIdOfThumbnail } from '@/dom/thumbnails';
+import { injectButton, syncWatchedState } from '@/dom/decorate';
 import { markWatched } from '@/engine';
 import { showToast } from '@/ui/toast';
 
 const inFlight = new Set<string>();
+// Videos optimistically marked in this page view (C5: never persisted).
+const marked = new Set<string>();
+
+function decoratedAnchors(): HTMLAnchorElement[] {
+  return [...document.querySelectorAll<HTMLAnchorElement>(`a[${DECORATED_ATTR}]`)];
+}
+
+function syncAll(): void {
+  for (const a of decoratedAnchors()) syncWatchedState(a, marked);
+}
 
 function isSignedOut(): boolean {
   // Positive avatar detection is unreliable on YouTube's obfuscated masthead, so we
@@ -19,22 +29,25 @@ function isSignedOut(): boolean {
 // The watched bar is OPTIMISTIC FEEDBACK ONLY — it lasts for the current page view and is
 // intentionally NOT re-applied after a reload. Once the page reloads, the native YouTube
 // state takes over and we leave already-marked thumbnails completely untouched.
-async function handleClick(anchor: HTMLAnchorElement, videoId: string): Promise<void> {
+async function handleClick(anchor: HTMLAnchorElement): Promise<void> {
+  // Read the id at click time: YouTube reuses lockups and the inline preview (C6).
+  const videoId = videoIdOfThumbnail(anchor);
+  if (!videoId) return;
   if (isSignedOut()) {
     showToast('Sign in to mark videos as watched');
     return;
   }
   if (inFlight.has(videoId)) return;
   inFlight.add(videoId);
-  applyWatchedStyle(anchor); // optimistic, this view only
-  markButtonState(anchor, true);
+  marked.add(videoId); // optimistic, this view only
+  syncAll();
   try {
     const res = await markWatched(videoId);
     if (!res.ok) throw new Error(res.error ?? 'unknown');
   } catch (e) {
     console.warn('[YMW] mark failed', videoId, e);
-    removeWatchedStyle(anchor); // revert on failure
-    markButtonState(anchor, false);
+    marked.delete(videoId); // revert on failure
+    syncAll();
     showToast('Couldn’t mark as watched');
   } finally {
     inFlight.delete(videoId);
@@ -44,9 +57,7 @@ async function handleClick(anchor: HTMLAnchorElement, videoId: string): Promise<
 function scan(): void {
   if (!isActiveSurface(location.pathname)) return;
   for (const anchor of findThumbnailAnchors(document)) {
-    const videoId = videoIdOfThumbnail(anchor);
-    if (!videoId) continue;
-    injectButton(anchor, () => void handleClick(anchor, videoId));
+    injectButton(anchor, () => void handleClick(anchor));
   }
 }
 
@@ -61,7 +72,21 @@ function debounce(fn: () => void, ms: number): () => void {
 function start(): void {
   injectStylesOnce();
   const run = debounce(scan, 250);
-  new MutationObserver(run).observe(document.documentElement, { childList: true, subtree: true });
+  new MutationObserver((records) => {
+    let added = false;
+    for (const r of records) {
+      if (r.type === 'childList') added = true;
+      else if (r.target instanceof HTMLAnchorElement && r.target.hasAttribute(DECORATED_ATTR)) {
+        syncWatchedState(r.target, marked); // reused node now points at another video (C6)
+      }
+    }
+    if (added) run();
+  }).observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['href'],
+  });
   document.addEventListener('yt-navigate-finish', scan);
   scan();
 }
