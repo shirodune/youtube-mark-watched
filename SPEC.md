@@ -75,9 +75,11 @@ YouTube 没有写观看记录的公开 API（Data API v3 自 2016 年起不支�
 ## 7. 工程
 
 - 技术栈：WXT（Vite）+ TypeScript + Vitest + Biome（lint/格式化），包管理用 Bun；GitHub Actions 跑 `check` 和 `build`。
-- `src/entrypoints/content.ts` 入口；`src/page`（范围判断）、`src/dom`（查找/注入/样式）、
+- `src/entrypoints/content/`：入口 `index.ts` + 样式 `style.css`（WXT 写进 manifest 注入）；
+  用 WXT 的 `ctx` 管理生命周期，扩展重载/更新使旧脚本失效时停止监听。
+  `src/page`（范围判断）、`src/dom`（查找/注入/扫描调度）、
   `src/engine`（写入机制，对外只暴露 `markWatched(videoId): Promise<{ ok; error? }>`）、`src/ui`（toast）。
-- 纯逻辑（`page`、`dom`、`engine`）必须有单元测试；`tests/` 镜像 `src/` 目录。
+- 纯逻辑（`page`、`dom`、`engine`）必须有单元测试；`tests/` 镜像 `src/` 目录，Vitest 用 `WxtVitest()` 插件。
 
 | 命令 | 作用 |
 | --- | --- |

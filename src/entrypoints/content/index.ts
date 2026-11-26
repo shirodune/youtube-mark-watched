@@ -1,8 +1,9 @@
-// src/entrypoints/content.ts — content script entry (see SPEC.md §3)
+// src/entrypoints/content/index.ts — content script entry (see SPEC.md §3)
+import './style.css';
+import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 
 import { injectButton, syncWatchedState } from '@/dom/decorate';
 import { coalesce } from '@/dom/schedule';
-import { injectStylesOnce } from '@/dom/styles';
 import { DECORATED_ATTR, findThumbnailAnchors, videoIdOfThumbnail } from '@/dom/thumbnails';
 import { markWatched } from '@/engine';
 import { isActiveSurface } from '@/page/pageScope';
@@ -63,10 +64,11 @@ function scan(): void {
   }
 }
 
-function start(): void {
-  injectStylesOnce();
-  const run = coalesce(scan, 250);
-  new MutationObserver((records) => {
+function start(ctx: ContentScriptContext): void {
+  const run = coalesce(() => {
+    if (ctx.isValid) scan();
+  }, 250);
+  const observer = new MutationObserver((records) => {
     let added = false;
     for (const r of records) {
       if (r.type === 'childList') added = true;
@@ -75,13 +77,20 @@ function start(): void {
       }
     }
     if (added) run();
-  }).observe(document.documentElement, {
+  });
+  observer.observe(document.documentElement, {
     childList: true,
     subtree: true,
     attributes: true,
     attributeFilter: ['href'],
   });
+  // YouTube's own SPA event isn't in DocumentEventMap, so remove it ourselves on invalidation.
   document.addEventListener('yt-navigate-finish', scan);
+  // Extension reloaded/updated: this script is orphaned, stop reacting to the page.
+  ctx.onInvalidated(() => {
+    observer.disconnect();
+    document.removeEventListener('yt-navigate-finish', scan);
+  });
   scan();
 }
 
