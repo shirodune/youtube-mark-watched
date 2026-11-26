@@ -11,9 +11,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "check": "bun run lint && bun run typecheck && bun run test",
     "postinstall": "wxt prepare"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.6.9",
     "jsdom": "^31.0.1",
     "typescript": "^7.0.2",
     "vitest": "^5.1.2",
