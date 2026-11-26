@@ -32,12 +32,20 @@ export function injectButton(anchor: HTMLAnchorElement, onClick: () => void): vo
   anchor.appendChild(btn);
 }
 
+/**
+ * The element whose box is the visible thumbnail (C2). The <a> can be wider (16px right padding on
+ * History), so the bar goes inside the thumbnail, which also clips it to the rounded corners.
+ */
+export function thumbnailBox(anchor: HTMLAnchorElement): Element {
+  return anchor.querySelector('yt-thumbnail-view-model') ?? anchor;
+}
+
 export function applyWatchedStyle(anchor: HTMLAnchorElement): void {
   anchor.classList.add('ymw-watched');
   if (!anchor.querySelector('.ymw-watched-bar')) {
     const bar = document.createElement('div');
     bar.className = 'ymw-watched-bar';
-    anchor.appendChild(bar);
+    thumbnailBox(anchor).appendChild(bar);
   }
 }
 

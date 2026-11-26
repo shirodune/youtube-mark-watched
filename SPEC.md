@@ -27,7 +27,8 @@ local database.
 
 **Button**
 - **B1** Every link to `/watch?v=<id>` that contains a thumbnail image gets one button, placed inside the
-  `<a>` (the only element whose box is exactly the thumbnail). One button per link; if a YouTube re-render
+  `<a>` (its top-left corner is the thumbnail's; moving the button out to the parent broke sizing and
+  placement). One button per link; if a YouTube re-render
   drops it, the next scan puts it back. When SPA navigation leaves the scope (e.g. to search), injected
   buttons and bars are removed (nodes such as the inline preview survive across pages).
 - **B2** The button is hidden until the thumbnail is hovered (or keyboard focus is inside the thumbnail
@@ -47,7 +48,10 @@ local database.
 - **C1** Signed out (the masthead shows a sign-in link) → toast "Sign in to mark videos as watched", no
   requests.
 - **C2** Signed in → immediately show a red bar at the bottom of the thumbnail and switch the button to its
-  done state (optimistic), then write native history in the background.
+  done state (optimistic), then write native history in the background. The bar goes inside the thumbnail
+  element (`yt-thumbnail-view-model`, falling back to the `<a>`), next to YouTube's own progress bar, so it
+  gets the thumbnail's width and rounded corners: on History the `<a>` has 16px right padding, and a bar
+  spanning the `<a>` overshoots the thumbnail.
 - **C3** Write fails → remove the bar, reset the button, toast "Couldn’t mark as watched".
 - **C4** Clicks on a video whose request is still in flight are ignored.
 - **C5** The red bar lasts for the current page view only; it is not re-applied after a reload, where

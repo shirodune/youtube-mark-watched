@@ -5,7 +5,9 @@ import {
   buttonOf,
   injectButton,
   markButtonState,
+  removeWatchedStyle,
   syncWatchedState,
+  thumbnailBox,
   undecorate,
 } from '../../src/dom/decorate';
 import { DECORATED_ATTR } from '../../src/dom/thumbnails';
@@ -103,5 +105,30 @@ describe('undecorate', () => {
     expect(a.querySelector('.ymw-watched-bar')).toBeNull();
     expect(a.hasAttribute(DECORATED_ATTR)).toBe(false);
     expect(a.classList.contains('ymw-anchor')).toBe(false);
+  });
+});
+
+describe('watched bar placement (C2)', () => {
+  it('goes inside the thumbnail element, not the wider <a>', () => {
+    const a = thumbAnchor(); // contains <yt-thumbnail-view-model>
+    applyWatchedStyle(a);
+    const bar = a.querySelector('.ymw-watched-bar')!;
+    expect(bar.parentElement!.tagName).toBe('YT-THUMBNAIL-VIEW-MODEL');
+    expect(thumbnailBox(a)).toBe(bar.parentElement);
+  });
+
+  it('falls back to the <a> for legacy thumbnails', () => {
+    const a = document.createElement('a');
+    a.setAttribute('href', '/watch?v=LEG');
+    a.appendChild(document.createElement('img'));
+    applyWatchedStyle(a);
+    expect(a.querySelector('.ymw-watched-bar')!.parentElement).toBe(a);
+  });
+
+  it('is removed again from inside the thumbnail', () => {
+    const a = thumbAnchor();
+    applyWatchedStyle(a);
+    removeWatchedStyle(a);
+    expect(a.querySelector('.ymw-watched-bar')).toBeNull();
   });
 });
