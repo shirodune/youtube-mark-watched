@@ -1,5 +1,8 @@
 # YouTube Mark as Watched
 
+[![Latest release](https://img.shields.io/github/v/release/shirodune/youtube-mark-watched)](https://github.com/shirodune/youtube-mark-watched/releases/latest)
+[![Download](https://img.shields.io/badge/download-chrome.zip-blue)](https://github.com/shirodune/youtube-mark-watched/releases/latest/download/youtube-mark-watched-chrome.zip)
+
 A Chrome extension that adds a **Mark as watched** button to YouTube thumbnails.
 
 One click writes the video to your **real YouTube watch history**: it shows up in
@@ -25,8 +28,8 @@ thumbnails. This one records the view in your YouTube account instead.
 
 It isn't on the Chrome Web Store; install it from a release:
 
-1. Download `youtube-mark-watched-<version>-chrome.zip` from the
-   [latest release](https://github.com/shirodune/youtube-mark-watched/releases/latest) and unzip it.
+1. Download [youtube-mark-watched-chrome.zip](https://github.com/shirodune/youtube-mark-watched/releases/latest/download/youtube-mark-watched-chrome.zip)
+   from the [latest release](https://github.com/shirodune/youtube-mark-watched/releases/latest) and unzip it.
 2. Open `chrome://extensions` and turn on **Developer mode**.
 3. Click **Load unpacked** and pick the unzipped folder.
 

@@ -11,4 +11,6 @@ export default defineConfig({
   webExt: { disabled: true },
   // Fixed port: the loaded dev build only reconnects (and auto-reloads) on the port it was built for.
   dev: { server: { port: 3001 } },
+  // Stable asset name so README can link to releases/latest/download/<name>.
+  zip: { artifactTemplate: '{{name}}-{{browser}}.zip' },
 });
