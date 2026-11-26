@@ -23,19 +23,17 @@ thumbnails. This one records the view in your YouTube account instead.
 
 ## Install
 
-There's no Chrome Web Store release; build it from source. You need [Bun](https://bun.sh).
+It isn't on the Chrome Web Store; install it from a release:
 
-```bash
-git clone https://github.com/shirodune/youtube-mark-watched.git
-cd youtube-mark-watched
-bun install
-bun run build
-```
+1. Download `youtube-mark-watched-<version>-chrome.zip` from the
+   [latest release](https://github.com/shirodune/youtube-mark-watched/releases/latest) and unzip it.
+2. Open `chrome://extensions` and turn on **Developer mode**.
+3. Click **Load unpacked** and pick the unzipped folder.
 
-Then open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked** and pick
-`.output/chrome-mv3`.
+Unpacked extensions don't update themselves. To update, unzip the new release over the same folder and
+click ↻ on the extension's card.
 
-To update: `git pull`, `bun install`, `bun run build`, then click ↻ on the extension's card.
+Or build from source with [Bun](https://bun.sh): `bun install && bun run build`, then load `.output/chrome-mv3`.
 
 ## How it works
 
