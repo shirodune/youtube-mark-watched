@@ -1,13 +1,3 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ES2022",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "types": ["chrome"],
-    "lib": ["ES2022", "DOM", "DOM.Iterable"]
-  },
-  "include": ["src", "tests", "build.mjs", "vitest.config.ts"]
+  "extends": "./.wxt/tsconfig.json"
 }

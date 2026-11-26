@@ -1,10 +1,10 @@
-// src/content.ts
-import { isActiveSurface } from './page/pageScope';
-import { injectStylesOnce } from './dom/styles';
-import { findThumbnailAnchors, videoIdOfThumbnail } from './dom/thumbnails';
-import { injectButton, applyWatchedStyle, removeWatchedStyle, markButtonState } from './dom/decorate';
-import { markWatched } from './engine';
-import { showToast } from './ui/toast';
+// src/entrypoints/content.ts — content script entry (see SPEC.md §3)
+import { isActiveSurface } from '@/page/pageScope';
+import { injectStylesOnce } from '@/dom/styles';
+import { findThumbnailAnchors, videoIdOfThumbnail } from '@/dom/thumbnails';
+import { injectButton, applyWatchedStyle, removeWatchedStyle, markButtonState } from '@/dom/decorate';
+import { markWatched } from '@/engine';
+import { showToast } from '@/ui/toast';
 
 const inFlight = new Set<string>();
 
@@ -66,4 +66,8 @@ function start(): void {
   scan();
 }
 
-start();
+export default defineContentScript({
+  matches: ['*://*.youtube.com/*'],
+  runAt: 'document_idle',
+  main: start,
+});
