@@ -31,6 +31,17 @@ describe('findThumbnailAnchors', () => {
     expect(findThumbnailAnchors(root)).toHaveLength(0);
   });
 
+  it('skips ads whose badge sits in the outer card, outside a nested lockup (B4)', () => {
+    const root = lockup(`
+      <ytd-rich-item-renderer>
+        <ad-badge-view-model></ad-badge-view-model>
+        <yt-lockup-view-model>
+          <a href="/watch?v=BBB"><yt-thumbnail-view-model></yt-thumbnail-view-model></a>
+        </yt-lockup-view-model>
+      </ytd-rich-item-renderer>`);
+    expect(findThumbnailAnchors(root)).toHaveLength(0);
+  });
+
   it('does not double-pick anchors that already have a button', () => {
     const root = lockup(
       `<a href="/watch?v=CCC" data-ymw="1"><yt-thumbnail-view-model></yt-thumbnail-view-model><button class="ymw-mark-btn"></button></a>`,

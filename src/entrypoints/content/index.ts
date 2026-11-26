@@ -2,7 +2,7 @@
 import './style.css';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 
-import { injectButton, syncWatchedState } from '@/dom/decorate';
+import { injectButton, syncWatchedState, undecorate } from '@/dom/decorate';
 import { coalesce } from '@/dom/schedule';
 import { DECORATED_ATTR, findThumbnailAnchors, videoIdOfThumbnail } from '@/dom/thumbnails';
 import { markWatched } from '@/engine';
@@ -33,6 +33,7 @@ function isSignedOut(): boolean {
 // intentionally NOT re-applied after a reload. Once the page reloads, the native YouTube
 // state takes over and we leave already-marked thumbnails completely untouched.
 async function handleClick(anchor: HTMLAnchorElement): Promise<void> {
+  if (!isActiveSurface(location.pathname)) return; // B1: a leftover node on an out-of-scope page
   // Read the id at click time: YouTube reuses lockups and the inline preview (C6).
   const videoId = videoIdOfThumbnail(anchor);
   if (!videoId) return;
@@ -58,10 +59,15 @@ async function handleClick(anchor: HTMLAnchorElement): Promise<void> {
 }
 
 function scan(): void {
-  if (!isActiveSurface(location.pathname)) return;
+  if (!isActiveSurface(location.pathname)) {
+    // B1: nodes like the inline preview survive SPA navigation; don't leave our UI on them.
+    for (const a of decoratedAnchors()) undecorate(a);
+    return;
+  }
   for (const anchor of findThumbnailAnchors(document)) {
     injectButton(anchor, () => void handleClick(anchor));
   }
+  syncAll(); // C6: new thumbnails of an already-marked video get its state too
 }
 
 function start(ctx: ContentScriptContext): void {
@@ -72,8 +78,12 @@ function start(ctx: ContentScriptContext): void {
     let added = false;
     for (const r of records) {
       if (r.type === 'childList') added = true;
-      else if (r.target instanceof HTMLAnchorElement && r.target.hasAttribute(DECORATED_ATTR)) {
-        syncWatchedState(r.target, marked); // reused node now points at another video (C6)
+      else if (r.target instanceof HTMLAnchorElement) {
+        if (r.target.hasAttribute(DECORATED_ATTR)) {
+          syncWatchedState(r.target, marked); // reused node now points at another video (C6)
+        } else if (videoIdOfThumbnail(r.target)) {
+          added = true; // B3: an existing link just became a watch link
+        }
       }
     }
     if (added) run();
@@ -90,6 +100,8 @@ function start(ctx: ContentScriptContext): void {
   ctx.onInvalidated(() => {
     observer.disconnect();
     document.removeEventListener('yt-navigate-finish', scan);
+    // Our buttons' click handlers belong to this dead script; let the new one re-inject.
+    for (const a of decoratedAnchors()) undecorate(a);
   });
   scan();
 }

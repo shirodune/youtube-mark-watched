@@ -68,6 +68,17 @@ describe('markWatchedViaPings', () => {
     expect(res.error).toContain('network down');
   });
 
+  it('fails without sending any ping when the watch page is not 2xx (§4.5)', async () => {
+    const fakeFetch = vi.fn((url: string) =>
+      url.includes('/watch?v=')
+        ? Promise.resolve({ ok: false, status: 500, text: () => Promise.resolve(watchPageHtml('10')) })
+        : Promise.resolve({ ok: true, status: 204, text: () => Promise.resolve('') }),
+    );
+    const res = await markWatchedViaPings('ID', { fetch: fakeFetch as unknown as typeof fetch });
+    expect(res.ok).toBe(false);
+    expect(fakeFetch).toHaveBeenCalledTimes(1);
+  });
+
   it('default deps invoke fetch unbound (guards against detached-native-fetch "Illegal invocation")', async () => {
     const original = globalThis.fetch;
     // Mimic native fetch: calling it as a method of a non-global object is illegal.

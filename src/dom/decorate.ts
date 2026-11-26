@@ -58,3 +58,11 @@ export function syncWatchedState(anchor: HTMLAnchorElement, marked: ReadonlySet<
   else removeWatchedStyle(anchor);
   markButtonState(anchor, on);
 }
+
+/** Remove everything we added to the anchor (leaving scope, or this script was invalidated). */
+export function undecorate(anchor: HTMLAnchorElement): void {
+  buttonOf(anchor)?.remove();
+  removeWatchedStyle(anchor);
+  anchor.removeAttribute(DECORATED_ATTR);
+  anchor.classList.remove('ymw-anchor');
+}

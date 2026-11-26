@@ -17,14 +17,16 @@ describe('coalesce (B3)', () => {
     expect(fn).toHaveBeenCalledTimes(1);
   });
 
-  it('is not starved by calls arriving every 250ms', () => {
+  it('is not starved by calls arriving faster than the window (B3)', () => {
     vi.useFakeTimers();
     const fn = vi.fn();
     const run = coalesce(fn, 250);
-    for (let i = 0; i < 8; i++) {
+    // A call every 100ms for 1s: a debounce would never fire until the calls stop.
+    for (let t = 0; t < 1000; t += 100) {
       run();
-      vi.advanceTimersByTime(250);
+      vi.advanceTimersByTime(100);
+      if (t === 200) expect(fn).toHaveBeenCalledTimes(1); // 250ms after the first call
     }
-    expect(fn).toHaveBeenCalledTimes(8);
+    expect(fn.mock.calls.length).toBeGreaterThanOrEqual(3);
   });
 });

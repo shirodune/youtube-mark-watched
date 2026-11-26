@@ -6,6 +6,7 @@ import {
   injectButton,
   markButtonState,
   syncWatchedState,
+  undecorate,
 } from '../../src/dom/decorate';
 import { DECORATED_ATTR } from '../../src/dom/thumbnails';
 
@@ -89,5 +90,18 @@ describe('syncWatchedState (C6: reused nodes follow their current href)', () => 
     marked.delete('AAA');
     syncWatchedState(a, marked);
     expect(isOn(a)).toEqual({ bar: false, done: false });
+  });
+});
+
+describe('undecorate', () => {
+  it('removes the button, bar, marker attribute and class', () => {
+    const a = thumbAnchor();
+    injectButton(a, vi.fn());
+    applyWatchedStyle(a);
+    undecorate(a);
+    expect(buttonOf(a)).toBeNull();
+    expect(a.querySelector('.ymw-watched-bar')).toBeNull();
+    expect(a.hasAttribute(DECORATED_ATTR)).toBe(false);
+    expect(a.classList.contains('ymw-anchor')).toBe(false);
   });
 });

@@ -26,11 +26,14 @@ Chrome 扩展（MV3）。在 YouTube 缩略图上加一个"标记为已看"按�
 **按钮**
 - **B1** 每个指向 `/watch?v=<id>` 且含缩略图图片的链接，注入一个按钮（放在 `<a>` 里面：只有它的盒子正好是缩略图）；
   同一链接只有一个按钮，YouTube 重新渲染丢掉按钮后，下次扫描补回。
+  SPA 跳到范围外的页面（如搜索）时，移除已注入的按钮和红条（内联预览等节点会跨页面保留）。
 - **B2** 按钮平时隐藏，悬停缩略图（或键盘聚焦到缩略图链接内）时显示；`aria-label="Mark as watched"`。
   位置：左上角，40px 圆形（与内联预览的原生按钮同尺寸）；缩略图宽度 ≤ 300px（如观看页侧栏）用 28px 小按钮。
   悬停后 YouTube 弹出的内联预览（`ytd-video-preview`）会盖住缩略图，预览上也要显示按钮。
 - **B3** 无限滚动、SPA 跳转（`yt-navigate-finish`）后的新缩略图也会注入（MutationObserver；首个变更后 250ms 扫描一次，持续变更不会推迟扫描——观看记录页每 250ms 就有变更，防抖会被饿死）。
-- **B4** 广告卡片（含 `ad-badge-view-model`）、非缩略图的标题链接不注入。
+  未注入的链接 `href` 变成视频地址（只改属性、不增删节点）也触发扫描。
+- **B4** 广告卡片（外层卡片 `ytd-rich-item-renderer` 或 `yt-lockup-view-model` 内含 `ad-badge-view-model`）、
+  非缩略图的标题链接不注入。
 
 **点击**
 - **C1** 未登录（顶栏有登录入口）→ 提示 "Sign in to mark videos as watched"，不发请求。
@@ -39,7 +42,7 @@ Chrome 扩展（MV3）。在 YouTube 缩略图上加一个"标记为已看"按�
 - **C4** 同一视频请求进行中时重复点击被忽略。
 - **C5** 红条只在本次页面浏览中存在；刷新后不重新应用，由 YouTube 自己的进度条接管。
 - **C6** YouTube 会复用卡片和内联预览元素（换 `href` 不换节点）：点击时按链接**当前**的 `href` 取视频 ID；
-  `href` 变化后红条和按钮状态跟着新视频同步（同一视频的所有缩略图状态一致）。
+  `href` 变化后红条和按钮状态跟着新视频同步；之后新出现的同一视频缩略图也同步（同一视频的所有缩略图状态一致）。
 
 ## 4. 写入机制（已由 2026-05-30 spike 在真实账号上验证）
 
@@ -53,7 +56,8 @@ YouTube 没有写观看记录的公开 API（Data API v3 自 2016 年起不支�
 3. playback ping：`playbackUrl + ver=2&cpn=<cpn>&cmt=0`。
 4. 把 `0→时长` 切成约 4 段，逐段发 watchtime ping：`ver=2&cpn&cmt=<et>&st&et&state=playing`；
    **最后一段** `state=paused&final=1`（提交观看位置）。
-5. 任一响应非 2xx → 失败。
+5. 任一响应非 2xx（包括第 1 步的 `/watch` 页面）→ 失败。
+6. 追踪 URL 必须是 `https://` 且主机为 `youtube.com` 或其子域，否则不发请求、直接失败（§6）。
 
 已知事实：
 - 只发一次瞬时 ping → 有历史记录但进度条只有 ~10%；分段 + `final=1` → 100%。
@@ -76,7 +80,7 @@ YouTube 没有写观看记录的公开 API（Data API v3 自 2016 年起不支�
 
 - 技术栈：WXT（Vite）+ TypeScript + Vitest + Biome（lint/格式化），包管理用 Bun；GitHub Actions 跑 `check` 和 `build`。
 - `src/entrypoints/content/`：入口 `index.ts` + 样式 `style.css`（WXT 写进 manifest 注入）；
-  用 WXT 的 `ctx` 管理生命周期，扩展重载/更新使旧脚本失效时停止监听。
+  用 WXT 的 `ctx` 管理生命周期，扩展重载/更新使旧脚本失效时停止监听，并移除它注入的按钮和红条，交给新脚本重新注入。
   `src/page`（范围判断）、`src/dom`（查找/注入/扫描调度）、
   `src/engine`（写入机制，对外只暴露 `markWatched(videoId): Promise<{ ok; error? }>`）、`src/ui`（toast）。
 - 纯逻辑（`page`、`dom`、`engine`）必须有单元测试；`tests/` 镜像 `src/` 目录，Vitest 用 `WxtVitest()` 插件。
@@ -84,7 +88,7 @@ YouTube 没有写观看记录的公开 API（Data API v3 自 2016 年起不支�
 | 命令 | 作用 |
 | --- | --- |
 | `bun install` | 安装依赖（会自动 `wxt prepare`） |
-| `bun run dev` | 开发构建到 `.output/chrome-mv3-dev`，改代码自动重载扩展 |
+| `bun run dev` | 开发构建到 `.output/chrome-mv3-dev`，改代码自动重载扩展（偶尔只报 "Reloaded: content" 却没生效：去 `chrome://extensions` 点 ↻） |
 | `bun run build` | 生产构建到 `.output/chrome-mv3` |
 | `bun run zip` | 打包上架用 zip |
 | `bun run test` | 单元测试（注意不是 `bun test`） |

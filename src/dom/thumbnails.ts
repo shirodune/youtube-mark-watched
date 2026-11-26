@@ -8,8 +8,9 @@ function isThumbnailAnchor(a: Element): boolean {
 }
 
 function isInsideAd(a: Element): boolean {
-  const lockup = a.closest('yt-lockup-view-model, ytd-rich-item-renderer');
-  return !!lockup && !!lockup.querySelector('ad-badge-view-model');
+  // Outermost card first: the ad badge can sit outside a nested lockup (B4).
+  const card = a.closest('ytd-rich-item-renderer') ?? a.closest('yt-lockup-view-model');
+  return !!card?.querySelector('ad-badge-view-model');
 }
 
 export function findThumbnailAnchors(root: ParentNode): HTMLAnchorElement[] {
