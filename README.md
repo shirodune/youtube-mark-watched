@@ -26,7 +26,7 @@ thumbnails. This one records the view in your YouTube account instead.
 There's no Chrome Web Store release; build it from source. You need [Bun](https://bun.sh).
 
 ```bash
-git clone <this repo>
+git clone https://github.com/shirodune/youtube-mark-watched.git
 cd youtube-mark-watched
 bun install
 bun run build
