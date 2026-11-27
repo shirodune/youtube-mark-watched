@@ -34,7 +34,10 @@ local database.
 - **B2** The button is hidden until the thumbnail is hovered (or keyboard focus is inside the thumbnail
   link); `aria-label="Mark as watched"`. Position: top-left, a 40px circle (same size as the inline
   preview's native buttons); thumbnails ≤ 300px wide (e.g. the watch-page sidebar) get a 28px button. The
-  inline preview (`ytd-video-preview`) that covers a hovered thumbnail must show the button too.
+  inline preview (`ytd-video-preview`) that covers a hovered thumbnail must show the button too. Clicking
+  anywhere else on a thumbnail or the preview must still open the video: inside the preview the link must
+  not be made a positioned/size container (it is 0px tall, and its absolutely positioned click overlay
+  would collapse with it), so there the button is positioned against the preview itself.
 - **B3** New thumbnails from infinite scroll and SPA navigation (`yt-navigate-finish`) get buttons too, via
   a MutationObserver: one scan 250ms after the first relevant change, and further changes do not postpone
   it (History changes every 250ms, which starves a debounce). A change is relevant when it adds an element

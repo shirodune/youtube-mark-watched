@@ -3,6 +3,12 @@
   position: relative;
   container-type: inline-size;
 }
+/* B2: the inline preview's link is 0px tall and its click overlay is absolutely positioned. Making the
+   link a containing block collapses that overlay, so clicks on the preview stop opening the video. */
+ytd-video-preview .ymw-anchor {
+  position: static;
+  container-type: normal;
+}
 /* B2: top-left, sized like the inline preview's native buttons. */
 .ymw-mark-btn {
   position: absolute;
